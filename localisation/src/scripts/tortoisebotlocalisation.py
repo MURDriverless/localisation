@@ -100,6 +100,8 @@ class Server:
 
         self.numstates = 4
 
+#-----------------------------------------------------------
+
     def quaternion_from_euler(self, roll, pitch, yaw):
         qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
         qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
@@ -107,12 +109,16 @@ class Server:
         qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
         return Quaternion(x=qx, y=qy, z=qz, w=qw)
 
+#-----------------------------------------------------------
+
     def pi_2_pi(self, angle):
         return (angle + np.pi)%(2*np.pi)-np.pi
 
+#-----------------------------------------------------------
+
     def kalman(self):
         # Update time rate
-        delta_t = self.gpsdt
+        delta_t = 0.1 #self.gpsdt
         current_time = rospy.Time.now()
 
         if self.x_k[3] == 0.:
@@ -228,6 +234,7 @@ class Server:
                 imu_msg.linear_acceleration = Vector3(self.acceleration.x,self.acceleration.y,0.0)
             imu_pub.publish(imu_msg)
 
+#-----------------------------------------------------------
 	
     def imu_callback(self,imu):
         current_time = rospy.Time.now()
@@ -286,9 +293,13 @@ class Server:
 
         odom_pub.publish(odom)
  
+#-----------------------------------------------------------
+
     def gps_velocity_callback(self, gps_velocity):
         self.gps_velocity = gps_velocity
         self.velocity = gps_velocity.vector
+
+#-----------------------------------------------------------
 
     def gps_callback(self, gps):
         
@@ -331,7 +342,7 @@ class Server:
 	self.past_position_y.append(self.position.y)
         self.past_position_z.append(self.position.z)
 
-	
+#-----------------------------------------------------------
     
     def talker(self):
 
@@ -340,6 +351,8 @@ class Server:
             
             self.kalman()
             rate.sleep()
+
+#-----------------------------------------------------------
 
 if __name__ == '__main__':
     rospy.init_node('VehiclePose')
