@@ -137,9 +137,9 @@ class Server:
 
         # Error Matrices
         # Disturbance Covariances (model)
-        Q = np.array([[0.05,0.025,0,0],[0.025,0.025,0,0],[0,0,0.05,0.025],[0,0,0.025,0.025]])
+        Q = np.array([[0.025,0,0,0],[0,0.025,0,0],[0,0,1,0],[0,0,0,1]])
         # Noise Covariances (Sensors)
-        R = np.array([[20,0,0,0],[0,20,0,0],[0,0,2,0],[0,0,0,2]])
+        R = np.array([[10,0,0,0],[0,10,0,0],[0,0,2,0],[0,0,0,2]])
 
 
         # Prediction Equations
