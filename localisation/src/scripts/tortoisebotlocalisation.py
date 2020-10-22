@@ -3,7 +3,7 @@ import rospy
 import message_filters
 import math
 from std_msgs.msg import String, Bool
-from geometry_msgs.msg import Vector3, Quaternion, PoseWithCovariance, TwistWithCovariance, Pose, Point, Twist, Vector3Stamped
+from geometry_msgs.msg import Vector3, Quaternion, PoseWithCovariance, TwistWithCovariance, Pose, Point, Twist, Vector3Stamped, PointStamped
 from sensor_msgs.msg import NavSatFix, Imu, MagneticField
 from nav_msgs.msg import Odometry
 
@@ -189,16 +189,22 @@ class Server:
 	# Publish Raw IMU for Path Following Control
         if self.imu is not None:
             imu_pub = rospy.Publisher('/mur/Imu/filtered', Imu, queue_size=10)
-
+            plot1_pub = rospy.Publisher('/plot/filtered', PointStamped, queue_size=10)
+            
             imu_msg = self.imu
             imu_msg.header.stamp = current_time
             imu_msg.header.frame_id = "imu"
+            plot1_msg = PointStamped()
+            plot1_msg.point = Point(0.0,0.0,0.0)
+            plot1_msg.header = imu_msg.header
             if self.x_k[3] == 0.:
 	        imu_msg.orientation = self.quaternion_from_euler(0.,0.,0.)
             else:
 	        imu_msg.orientation = self.quaternion_from_euler(0,0,self.pi_2_pi(self.acc_k[0]))
                 imu_msg.linear_acceleration = Vector3(self.acceleration.x,self.acceleration.y,0.0)
+		plot1_msg.point = Point(self.pi_2_pi(self.acc_k[0]),0.0,0.0)
             imu_pub.publish(imu_msg)
+            plot1_pub.publish(plot1_msg)
 
 #-----------------------------------------------------------
 	
@@ -229,6 +235,12 @@ class Server:
         t4 = +1.0 - 2.0 * (y * y + z * z)
         self.yawimu = math.atan2(t3, t4)
         self.yawimu = self.pi_2_pi(self.yawimu)
+
+        plot2_pub = rospy.Publisher('/plot/imu', PointStamped, queue_size=10)
+	plot2_msg = PointStamped()
+        plot2_msg.point = Point(self.yawimu,0.0,0.0)
+        plot2_msg.header = self.imu.header
+	plot2_pub.publish(plot2_msg)
 
 	# Zero acceleration due to gravity
         self.acceleration.x = self.imu.linear_acceleration.x - 9.80665*sin(self.pitchimu)
@@ -301,7 +313,32 @@ class Server:
         self.past_gps = gps
 
 #-----------------------------------------------------------
-    
+    def odom_callback(self,odom):
+	# Calculate Heading (Yaw orientation)
+        w = odom.pose.pose.orientation.w
+        x = odom.pose.pose.orientation.x
+        y = odom.pose.pose.orientation.y
+        z = odom.pose.pose.orientation.z      
+
+        t0 = +2.0 * (w * x + y * z)
+       	t1 = +1.0 - 2.0 * (x * x + y * y)
+        rollodom = math.atan2(t0, t1)
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitchodom = math.asin(t2)
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yawodom = math.atan2(t3, t4)
+        yawodom = self.pi_2_pi(yawodom)
+
+        plot3_pub = rospy.Publisher('/plot/odom', PointStamped, queue_size=10)
+	plot3_msg = PointStamped()
+        plot3_msg.point = Point(yawodom,0.0,0.0)
+        plot3_msg.header = odom.header
+	plot3_pub.publish(plot3_msg)
+
+#-----------------------------------------------------------
     def talker(self):
 
         rate = rospy.Rate(10) # 10hz
@@ -320,7 +357,7 @@ if __name__ == '__main__':
     rospy.Subscriber("/piksi/imu", Imu, server.imu_callback, queue_size=1)
     rospy.Subscriber("/piksi/gps", NavSatFix, server.gps_callback, queue_size=1)
     rospy.Subscriber("/piksi/velocity", Vector3Stamped, server.gps_velocity_callback, queue_size=1)
-
+    rospy.Subscriber("/odom", Odometry, server.odom_callback, queue_size=1)
     try:
         server.talker()
     except rospy.ROSInterruptException:
