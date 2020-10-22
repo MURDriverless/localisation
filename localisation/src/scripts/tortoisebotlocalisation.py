@@ -26,24 +26,16 @@ class Server:
     def __init__(self):
         self.gps = None
         self.imu = None
-        self.mf = None
         self.gps_velocity = None
 
         self.past_gps = None
-        self.past_imu = None
-        self.past_mf = None
 
 	self.calibrated = False
 
-        self.D = 11.824 # Magnetic Declination (Mornington)
-
         self.firstimu = 1
-        self.headingimu = 0.0
-        self.firstheadingimu = 0.0
         self.angular_velocity = 0.0
 
 	self.firstodom = 1
-        self.headingodom = 0.0
         self.firstheadingodom = 0.0
         self.angular_velocity_gps = 0.0
         
@@ -55,47 +47,25 @@ class Server:
 
 	self.firstgps = 0
 	self.firstposition = [0,0]
-        self.past_headingimu = []
-        self.past_headinggps = []
-        self.past_acceleration_x = []
-        self.past_acceleration_y = []
-        self.past_acceleration_z = []
-        self.past_velocity_x = []
-        self.past_velocity_y = []
-        self.past_velocity_z = []
-        self.past_position_x = []
-        self.past_position_y = []
-        self.past_position_z = []
 	
         self.dx = 0
         self.dy = 0
 	
         self.x_k = np.array([[0],[0],[0],[0]])
-
         self.acc_k = np.array([[0],[0],[0],[0]])
-
-        self.kf_past_velocity_x = []
-        self.kf_past_velocity_y = []
-        self.kf_past_position_x = []
-        self.kf_past_position_y = []
         self.P = np.array([[0.01,0,0,0],[0,0.64,0,0],[0,0,0.01,0],[0,0,0,0.01]])
-
         self.accP = np.array([[0.01,0,0,0],[0,0.1,0,0],[0,0,0.01,0],[0,0,0,0.1]])
 
         self.start_time = 0.0
         self.time = 0.0
-        self.dt = 0.02
         self.gpsdt = 0.0
         self.gpstime = 0.0
         self.imudt = 0.0
         self.imutime = 0.0
-        self.distance = 0.0
 
         self.pitchimu = 0.0;
         self.rollimu = 0.0;
         self.yawimu =  0.0;
-        self.pitchgps = 0.0;
-        self.rollgps = 0.0;
         self.yawgps = 0.0;
 
         self.numstates = 4
@@ -155,10 +125,6 @@ class Server:
         self.x_k = X_k + K.dot(zk - H.dot(X_k))
         # Covariance Update (1-K_n)p_(n,n-1)
         self.P = (np.identity(4)-K.dot(H)).dot(p)
-        self.kf_past_position_x.append(self.x_k[0])
-        self.kf_past_position_y.append(self.x_k[1])
-        self.kf_past_velocity_x.append(self.x_k[2])
-        self.kf_past_velocity_y.append(self.x_k[3])
         self.kf_position = (self.x_k[0],self.x_k[1],0.0)
 
         #ORIENTATION
@@ -240,13 +206,10 @@ class Server:
         current_time = rospy.Time.now()
         # Initialise
         self.imu = imu
-        self.past_acceleration_x.append(self.acceleration.x)
-        self.past_acceleration_y.append(self.acceleration.y)
-        self.past_headingimu.append(self.headingimu)
 
         self.imudt = imu.header.stamp.to_sec() - self.imutime
         if self.imudt>1: # Double check this!
-	    self.gpsdt=0.02
+	    self.imudt=0.02
         self.imutime = imu.header.stamp.to_sec()
 
         # Calculate Heading (Yaw orientation)
@@ -272,7 +235,6 @@ class Server:
         self.acceleration.y = self.imu.linear_acceleration.y - 9.80665*sin(self.rollimu)
         
         self.angular_velocity = imu.angular_velocity.z
-      	self.past_imu = imu
         self.firstimu = 0
 
 	odom_pub = rospy.Publisher('/fix/Odom', Odometry, queue_size=10)
@@ -337,10 +299,6 @@ class Server:
         self.yawgps = np.arctan2(self.position.y-self.dy, self.position.x-self.dx)
         self.yawgps = self.pi_2_pi(self.yawgps)
         self.past_gps = gps
-       
-        self.past_position_x.append(self.position.x)
-	self.past_position_y.append(self.position.y)
-        self.past_position_z.append(self.position.z)
 
 #-----------------------------------------------------------
     
