@@ -1,0 +1,4 @@
+<?xml version = "1.0"?>
+<launch>
+    <node pkg = "localisation" type = "mursimlocalisation.py" name = "localisationNode" output = "screen"></node>
+</launch>
