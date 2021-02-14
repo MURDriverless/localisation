@@ -12,7 +12,6 @@
 ## Table of Contents
 
 * [About the Project](#about-the-project)
-  * [Built With](#built-with)
 * [TortoiseBot](#tortoisebot)
   * [Requirements](#requirements)
   * [Installation](#installation)
@@ -129,4 +128,4 @@ or use rqt
 
 ## Todo
 - [x] Further tune the Kalman Filters
-- [x] MURSIM compatibility
+- [x] Plot branch is slightly better than Master but has publishers that will either be helpful for testing, or annoying to navigate. If using master, you need to update the R parameters to match Plot (see compare branches)
